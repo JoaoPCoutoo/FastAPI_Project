@@ -1,5 +1,5 @@
 from sqlalchemy import create_engine, Column, String, Integer, Boolean, Float, ForeignKey
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 #from sqlalchemy_utils.types import ChoiceType
 
 #quando fizer deploy do projeto, colocar aqui o link para onecção com o banco de dados
@@ -45,13 +45,16 @@ class Pedido (Base):
     status= Column("status", String)
     usuario= Column("usuario", ForeignKey("usuarios.id"))
     preco= Column("preco", Float)
-    #itens=
+    itens= relationship("ItemPedido", cascade= "all, delete")
 
     def __init__(self, usuario, status="PENDENTE", preco=0):
         self.usuario = usuario
         self.preco = preco
         self.status = status
 
+    def calcular_preco(self):
+        self.preco = sum(item.preco_unitario * item.quantidade for item in self.itens)
+    
 # itens pedido
 
 class ItemPedido(Base):
@@ -72,3 +75,8 @@ class ItemPedido(Base):
         self.pedido = pedido
 
 #executa a criação dos metadados do seu banco (cria efetivamente o banco de dados)
+
+
+
+#criar a migração: alembic revision --autogenerate -m "Alterar repr Pedidos"
+#executar a migração: alembic upgrade head 
