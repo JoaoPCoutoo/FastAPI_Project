@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 #schemas são as classes que vão padronizar o formato das informações recebidas
 
@@ -32,6 +32,16 @@ class ItemPedidoSchema(BaseModel):
     tamanho: str
     preco_unitario: float 
     id_pedido: int
+
+    class config:
+        from_attributes= True
+
+
+class RespondePedidoSchema(BaseModel):
+    id:int
+    status:str
+    preco: float
+    itens: List[ItemPedidoSchema]
 
     class config:
         from_attributes= True

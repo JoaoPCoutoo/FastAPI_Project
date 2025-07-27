@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from dependencies import pegar_sessao, verificar_token
-from schemas import PedidoSchema, ItemPedidoSchema
+from schemas import PedidoSchema, ItemPedidoSchema, RespondePedidoSchema
 from models import Pedido, Usuario, ItemPedido
+from typing import List
 
 
 #definindo a rota de autenticação da aplicação
@@ -114,12 +115,10 @@ async def visualizar_pedido(id_pedido: int,session: Session = Depends(pegar_sess
     }
     
 
-@order_routers.get("/listar/pedidos-usuario")
+@order_routers.get("/listar/pedidos-usuario", response_model=List[RespondePedidoSchema])
 async def listar_pedidos(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
     if not usuario.admin:
         raise HTTPException(status_code=401, detail="Você não possui autrização para realizar essa operação")
     else:
         pedidos = session.query(Pedido).filter(Pedido.usuario== usuario.id).all()
-        return {
-            "Pedidos:" : pedidos
-        }
+        return pedidos
