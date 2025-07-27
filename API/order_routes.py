@@ -67,4 +67,59 @@ async def adicionar_item_pedido(id_pedido: int, item_pedido_schema: ItemPedidoSc
         "item_id": item_pedido.id,
         "preco_pedido" : pedido.preco
     }
+
+
+@order_routers.post("/pedido/remover-item/{id_item_pedido}")
+async def remover_item_pedido(id_item_pedido: int, session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
+    item_pedido = session.query(ItemPedido).filter(ItemPedido.id ==id_item_pedido).first()
+    pedido = session.query(Pedido).filter(Pedido.id ==item_pedido).first()
+    if not item_pedido:
+        raise HTTPException(status_code=400, detail="Item do pedido não existente")
+    if not usuario.admin and usuario.id != item_pedido.pedido.usuario:
+        raise HTTPException(status_code=401, detail="Você não tem autorização para realizar essa operação")
+    session.delete(item_pedido)
+    pedido.calcular_preco()
+    session.commit()
+    return{
+        "mensagem" : "Item removido com sucesso",
+        "quantidade_itens_pedido" : len(pedido.itens),
+        "pedido" : pedido
+    }
+
+@order_routers.post("/pedido/finalizar/{id_pedido}")
+async def finalizar_pedido(id_pedido: int, session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
+
+    pedido = session.query(Pedido).filter(Pedido.id==id_pedido).first()
+    if not pedido:
+        raise HTTPException(status_code=400, detail="Pedido não encontrado")
+    if not usuario.admin and usuario.id != pedido.usuario:
+        raise HTTPException(status_code=401, detail="Você não possui autorização para finalizar esse pedido")
+    pedido.status= "FINALIZADO"
+    session.commit()
+    return{
+        "mensagem" : f"Pedido número {pedido.id} finalizado com sucesso",
+        "pedido" : pedido
+    }
     
+@order_routers.get("/pedido/{id_pedido}")
+async def visualizar_pedido(id_pedido: int,session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
+    pedido = session.query(Pedido).filter(Pedido.id==id_pedido).first()
+    if not pedido:
+        raise HTTPException(status_code=400, detail="Pedido não encontrado")
+    if not usuario.admin and usuario.id != pedido.usuario:
+        raise HTTPException(status_code=401, detail="Você não possui autorização para visualizar esse pedido")
+    return{
+        "quantidade de itens do pedido": len(pedido.itens),
+        "pedido": pedido
+    }
+    
+
+@order_routers.get("/listar/pedidos-usuario")
+async def listar_pedidos(session: Session = Depends(pegar_sessao), usuario: Usuario = Depends(verificar_token)):
+    if not usuario.admin:
+        raise HTTPException(status_code=401, detail="Você não possui autrização para realizar essa operação")
+    else:
+        pedidos = session.query(Pedido).filter(Pedido.usuario== usuario.id).all()
+        return {
+            "Pedidos:" : pedidos
+        }
